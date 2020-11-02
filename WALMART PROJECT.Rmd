@@ -1,0 +1,233 @@
+---
+title: "R Notebook"
+output:
+  html_notebook: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+#Loading the dataset in R
+library(readxl)
+library(readxl)
+getwd()
+Walmart_Retail_store <- read_excel("Walmart Retail store.xlsx")
+walmart <- Walmart_Retail_store
+View(walmart)
+summary(walmart)
+str(walmart)
+library(dplyr)
+```
+```{r}
+# Which Store has max sales
+# Aggregating Weekly Sales for the Stores
+max_sales <- summarize(group_by(walmart, Store), Weekly_Sales = sum(Weekly_Sales))
+max_sales
+```
+```{r}
+# Which Store has max sales
+# Max Weekly Sales
+max(max_sales$Weekly_Sales)
+```
+```{r}
+# Which Store has max sales
+# OR
+View(arrange(max_sales, desc(Weekly_Sales)))
+# Store 20 has the max sales of $301397792
+```
+```{r}
+# Which Store has max standard deviation? What is the coefficient of mean to standard deviation?
+# Std. Deviation of Store's Weekly Sales
+ssd <- summarize(group_by(walmart, Store), sd_weeklysales = sd(Weekly_Sales))
+ssd
+```
+```{r}
+# Which Store has max standard deviation? What is the coefficient of mean to standard deviation?
+# Max SD
+max(ssd)
+# Store 14 has the max Standard Deviation
+```
+```{r}
+# Which Store has max standard deviation? What is the coefficient of mean to standard deviation?
+# Mean of Weekly Sales of each store
+smean <- summarize(group_by(walmart, Store), m_weeklysales = mean(Weekly_Sales))
+smean
+```
+```{r}
+# Which Store has max standard deviation? What is the coefficient of mean to standard deviation?
+# Max Mean
+max(smean)
+# Store 20 has the max mean
+```
+```{r}
+# Which Store has max standard deviation? What is the coefficient of mean to standard deviation?
+# Calculating Coefficient of Mean to Standard Deviation
+# St. Deviation / Mean
+str(walmart)
+cmsd <- summarize(group_by(walmart, Store), coeff_weeklysales = mean(Weekly_Sales)/sd(Weekly_Sales))
+cmsd
+```
+```{r}
+# Max Coefficient of Mean to Standard Deviation
+max(cmsd$coeff_weeklysales)
+# Store 37 has the max coefficient of mean to standard deviation
+```
+```{r}
+# Adding a new column for Quarters in the Walmart Data
+install.packages(lubridate)
+library(lubridate)
+date.new <- as.Date(walmart$Date, format='%m-%d-%Y')
+Quarter <- quarter(date.new)
+walmart$Quarter <- Quarter
+str(walmart)
+```
+```{r}
+# Calculating Quarterly Sales for each store
+q.sales <- summarize(group_by(walmart, Store, Quarter), w.sales = sum(Weekly_Sales))
+q.sales
+```
+```{r}
+#Creating a new DATE variable with Date formate
+walmart.date <- as.Date(walmart$Date)
+walmart$DATE <- walmart.date
+str(walmart)
+```
+```{r}
+# Which holidays have higher mean sales than the mean sales in non-holiday season for all the stores together?
+# Some holidays have a negative impact on sales
+# Part 1 - Summarized the average of non-holiday sales of all the stores 
+sales <- summarize(group_by(walmart, DATE), avg.sales = mean(Weekly_Sales))
+sales
+```
+```{r}
+# Which holidays have higher mean sales than the mean sales in non-holiday season for all the stores together?
+# Average of all the non-holiday sales
+mean.sales <- mean(sales$avg.sales)
+mean.sales
+```
+```{r}
+# Which holidays have higher mean sales than the mean sales in non-holiday season for all the stores together?
+# Part - Summarized sales with Holiday = 1
+holiday.sales <- filter(walmart, Holiday_Flag == 1)
+holiday.sales1 <- summarize(group_by(holiday.sales, DATE), avg.sales = mean(Weekly_Sales))
+holiday.sales1
+```
+```{r}
+# Which holidays have higher mean sales than the mean sales in non-holiday season for all the stores together?
+mean.holidaysales <- mean(holiday.sales1$avg.sales)
+mean.holidaysales
+# Mean of holiday sales is higher than the mean of non-holiday sales
+```
+```{r}
+# Which holidays have higher mean sales than the mean sales in non-holiday season for all the stores together?
+# Which mean is higher
+mutate(holiday.sales1, Which.Mean.Is.Higher = ifelse(avg.sales > 1046965, "Holiday Sales", "Non-Holiday Sales"))
+```
+
+```{r}
+#  Provide a monthly and a semester view of sales in units and give insights
+w.month <- month(date.new)
+walmart$Month <- w.month
+w.semester <- semester(date.new)
+walmart$Semester <- w.semester
+walmart
+```
+```{r}
+# Provide a monthly and a semester view of sales in units and give insights
+# grouping the data by month over the years
+group.month <- summarize(group_by(walmart, Month), tot.sales = sum(Weekly_Sales))
+group.month
+```
+```{r}
+#  Provide a monthly and a semester view of sales in units and give insights
+plot(group.month, type="l")
+# The graph shows a rapid increase in the sales in month of February and a decline in sales in the month of November and an excellerated increase in sales in December
+```
+```{r}
+# Provide a monthly and a semester view of sales in units and give insights
+# Grouping the data by semesters over the years
+group.sem <- summarize(group_by(walmart, Semester), tot.sales = sum(Weekly_Sales))
+group.sem
+```
+```{r}
+# Provide a monthly and a semester view of sales in units and give insights
+plot(group.sem, type="l")
+```
+```{r}
+# Provide a monthly and a semester view of sales in units and give insights
+# The graph shows an increasing trend from semester 1 to semester 2
+```
+
+```{r}
+####### PART 2 - Model Development ########
+```
+```{r}
+# Step 1 - Filter store 1
+w.model <- filter(walmart, Store == 1)
+w.model
+```
+```{r}
+# Changing Dates in days by creating a new variable
+date.num = c(1:143)
+cbind(w.model, date.num)
+```
+```{r}
+# Plotting the Weekly Sale of store 1 over the years for store 1 to see the trend
+library(ggplot2)
+with(w.model, plot(date.num, Weekly_Sales, type = "l"))
+```
+```{r}
+# Equation
+# predicted y hat(Weekly_Sales) = Intercept + B1(CPI) + B2(Unemployment) + B3(Fuel Price) + B4(date.num) + E
+
+# Hypothesis
+# H0: B1 = B2 = B3 = 0    <- This means that the 3 variables have no impact on y
+# H1: B1 not equal to B2 not equal to B3 not equal to 0  <- meaning that they have an impact on y
+```
+```{r}
+# Linear Regression Model
+lm.walmart <- lm(formula = Weekly_Sales ~ CPI + Unemployment + Fuel_Price + date.num, data = w.model )
+lm.walmart
+```
+```{r}
+summary(lm.walmart)
+# Variable unemployment is significant at 5% level
+# Variables CPI and Fuel_Price are not significant at 5% level
+# R Squared = 0.08517
+# Adjusted R Squared = 0.05865
+```
+```{r}
+# Let's see if we get better coefficients omitting CPI and Fuel_Price
+# Equation
+# Predicted y hat (Weekly Sales) = Intercept + B1(Unemployment) + B2(date.num) + E
+lm2.walmart <- lm(formula = Weekly_Sales ~ Unemployment + date.num, data = w.model)
+lm2.walmart
+```
+```{r}
+summary(lm2.walmart)
+```
+```{r}
+# The first model has a higher R squared as compared to the second model 
+# The second model has better coefficients than the first model based on looking at the t value and p value. Model 2 is better as all the coefficients have a higher significance
+
+```
+```{r}
+# Checking how accurately the second model predicts as compared to the first model
+predicted_sales1 <- predict(lm.walmart)
+View(predicted_sales1)
+plot(predicted_sales1, type ="l")
+```
+```{r}
+# Predicting using 2 model
+predicted_sales2 <- predict(lm2.walmart)
+View(predicted_sales2)
+plot(predicted_sales2, type = "l")
+```
+
+
